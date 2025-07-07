@@ -1,0 +1,71 @@
+# Git Workflow and Commit Message Standards
+
+This document outlines the Git branching strategy and commit message conventions used in this project. Adherence ensures a clean history and facilitates potential automation.
+
+## Branching Strategy (Simplified Flow for MVP)
+
+We use a simplified branching model for the MVP, based on the [successful Git branching model](https://nvie.com/posts/a-successful-git-branching-model/):
+
+1.  **`main` Branch:**
+    * Represents production-ready, deployable code.
+    * **DO NOT** commit directly to `main`.
+    * Code is merged into `main` from `develop` typically during release preparations.
+    * Production deployments are triggered from this branch (via Vercel).
+
+2.  **`develop` Branch:**
+    * The primary integration branch for ongoing development efforts.
+    * Contains the latest stable development code incorporating completed features.
+    * `feature/*` branches are merged into `develop` via Pull Requests.
+    * Direct commits should be avoided; use feature branches.
+
+3.  **`feature/*` Branches:**
+    * Branch **off from `develop`** for all new work (features, non-trivial fixes, chores).
+    * Naming Convention: `feature/[issue-id]-short-description` (e.g., `feature/PROJ-5-setup-mdc-rules`). Use kebab-case for the description part.
+    * Merge **back into `develop`** via a Pull Request upon completion.
+    * Feature branches SHOULD be deleted after successful merge into `develop`.
+
+*(Note: Dedicated `release/*` and `hotfix/*` branches are deferred for the MVP stage but may be adopted later if complexity increases).*
+
+## Commit Message Standard: Conventional Commits
+
+All commit messages MUST adhere to the **Conventional Commits specification (v1.0.0)**.
+
+**Structure:**
+```
+[type][optional scope]: [description]
+
+[optional body]
+
+[optional footer(s)]
+```
+
+**Common Types:**
+* `feat`: A new feature implementation. (Triggers MINOR SemVer bump)
+* `fix`: A bug fix. (Triggers PATCH SemVer bump)
+* `chore`: Changes to the build process, auxiliary tools, or libraries generation; general maintenance.
+* `docs`: Documentation changes only.
+* `style`: Code style changes (formatting, etc.) - often handled by Prettier.
+* `refactor`: Code change that neither fixes a bug nor adds a feature.
+* `perf`: Code change that improves performance.
+* `test`: Adding missing tests or correcting existing tests.
+* `ci`: Changes to CI configuration files and scripts (e.g., Vercel build settings).
+* `build`: Changes related to the build system or external dependencies.
+
+**Scope (Optional):** Parenthesized noun describing the section of the codebase affected (e.g., `feat(api): ...`, `fix(ui): ...`).
+
+**Breaking Changes:**
+* Append `!` immediately before the `:` in the header (e.g., `refactor(auth)!: ...`).
+* OR, include a footer starting with `BREAKING CHANGE: ` followed by a clear description.
+* Breaking changes trigger a MAJOR SemVer bump.
+
+**Body/Footer (Optional):** Use for detailed explanations, motivation, or linking issues (e.g., `Refs #42`, `Closes PROJ-5`).
+
+## Pull Requests (PRs)
+
+* Merges into `develop` and `main` MUST occur via Pull Requests.
+* PR titles SHOULD follow the Conventional Commits format.
+* PR descriptions SHOULD be clear, link related issues/tasks, and explain the "what" and "why".
+* Ensure feature branches are reasonably up-to-date with `develop` before requesting merge.
+* Code reviews are RECOMMENDED.
+* Automated CI checks (Linting, Vercel build preview) MUST pass.
+* Delete the source branch after merging the PR.

@@ -1,0 +1,51 @@
+# Security & Observability Guidelines
+
+**Priority:** Build secure, resilient, and observable code suitable for production environments from the start. The AI assistant MUST actively help identify potential security risks and promote secure coding patterns based on these guidelines.
+
+## 1. Input Validation & Sanitization (Server-Side Focus)
+- **Rule:** ALL data originating from external sources (user input via forms/API calls, URL parameters, third-party webhooks) MUST be strictly validated on the server-side before processing.
+- **Tool:** Use Zod for schema definition and validation. Define strict schemas.
+- **Practice:** Reject requests immediately (e.g., 400 Bad Request) if validation fails. Sanitize data appropriately before rendering if it might contain harmful characters (though React/JSX largely handles HTML encoding).
+- **XSS Prevention:** Rely on React's automatic JSX encoding. AVOID `dangerouslySetInnerHTML`. If unavoidable, ensure the HTML is rigorously sanitized using a trusted library. Validate URLs before using them in links or redirects.
+- **AI Action:** Flag any API route handler or Server Action that processes request data without prior Zod validation. Identify potential XSS risks (e.g., `dangerouslySetInnerHTML`). Suggest appropriate Zod schemas based on expected data.
+
+## 2. Authentication (AuthN) & Authorization (AuthZ)
+- **Authentication:** Use Supabase Auth via `@supabase/ssr` helpers for robust session management on the server. Ensure secure handling of tokens/cookies as managed by the library.
+- **Authorization:**
+    - **Verify Sessions:** Check for a valid, authenticated user session at the beginning of any protected API route or server-side logic.
+    - **Row Level Security (RLS):** This is NON-NEGOTIABLE. Enable RLS on all Supabase tables containing user-specific or sensitive data. Base policies primarily on `auth.uid() = user_id_column`. Define policies precisely for SELECT, INSERT, UPDATE, DELETE. Test RLS policies thoroughly.
+    - **Ownership Checks:** Do not rely on IDs passed from the client to determine data ownership. Always verify ownership against the authenticated `auth.uid()` within database queries (via RLS) or server-side logic.
+    - **Business Logic AuthZ:** Implement checks for specific roles or permissions within the application logic where RLS is insufficient for fine-grained control.
+- **CSRF Protection:** Rely on Next.js built-in protections for API Routes and Server Actions when using standard cookie-based sessions (handled by `@supabase/ssr`). Be mindful if implementing custom token handling.
+- **AI Action:** Check if protected routes/actions verify user sessions. Remind developer to define and test RLS policies for specific table interactions. Flag potential insecure direct object references (IDOR) where client-provided IDs might be used without server-side ownership checks.
+
+## 3. Secure Data Handling & Secrets Management
+- **Sensitive Data Exposure:**
+    - Minimize collection and storage of sensitive Personally Identifiable Information (PII).
+    - **NEVER** log sensitive data (passwords, full credit card numbers, API keys, PII) to consoles or external services like Sentry unless absolutely necessary, compliant with regulations, and properly masked/tokenized.
+    - **Secrets:** API keys, database connection strings, JWT secrets, etc., MUST only be stored in environment variables (`.env.local`, Vercel environment variables) and accessed exclusively server-side (`process.env`). NEVER commit secrets or include them in client-side bundles.
+    - Use specific `select()` statements in Supabase queries to fetch only needed data, avoiding accidental exposure of sensitive columns.
+- **AI Action:** Scan for hardcoded secrets (API keys, connection strings). Flag potential logging of sensitive data patterns. Check for `select('*')` usage on tables likely containing sensitive info. Verify environment variables are used for secrets.
+
+## 4. API, Server & Network Security
+- **Rate Limiting (Upstash):** Implement rate limiting using rate limiting function on all public-facing API routes, especially those consuming resources (LLM calls, database writes). Use user ID or IP address as the key. Return `429 Too Many Requests` upon exceeding limits.
+- **Security Misconfiguration:** Keep dependencies updated (see below). Use secure configurations for Next.js (e.g., security headers, although Vercel provides good defaults), Supabase (RLS, password policies), and Vercel deployment settings. Do not disable security features without strong justification.
+- **Server-Side Request Forgery (SSRF):** If making server-side HTTP requests to URLs partially or fully derived from user input, **strictly validate and sanitize the URL**. Prefer using allow-lists for permitted domains or IP ranges if possible. Treat responses from external requests with caution.
+- **AI Action:** Check for rate limit implementation on API routes. Flag code making outgoing HTTP requests based on user-controlled data and check for validation.
+
+## 5. Dependency Security (Supply Chain Attack Mitigation)
+- **Audit:** Regularly run `npm audit` and address reported vulnerabilities, especially high and critical severity ones.
+- **Updates:** Keep dependencies updated using `npm update` or dependabot/renovate. Review changelogs for significant or security-related updates.
+- **Vet Packages:** Be cautious when adding new dependencies. Prefer well-maintained, reputable packages. Check for known vulnerabilities or malicious history before adding.
+- **AI Action:** Remind developer to run `npm audit`.
+
+## 6. Business Logic Security
+- **Adversarial Thinking:** Consider how application features could be abused. Can users perform actions out of order? Submit unexpected values to manipulate state? Cause excessive resource usage?
+- **Server-Side Validation:** Ensure critical business rules and state transitions are validated server-side, not just client-side.
+- **AI Action:** While complex, try to flag patterns where user input directly triggers resource-intensive operations or modifies critical state without apparent server-side validation of the logic flow itself (requires careful prompting/analysis).
+
+## 7. Observability (Sentry for Error Reporting)
+- **Configuration:** Ensure `@sentry/nextjs` is correctly initialized and configured to capture errors and performance data across the application (client, server, edge).
+- **Error Reporting:** Use `Sentry.captureException(error, { extra: { context } })` in `catch` blocks for handled errors where additional context is useful. Ensure unhandled errors are automatically captured.
+- **Monitoring:** Regularly review Sentry issues to identify, prioritize, and fix bugs and performance regressions. Monitor for unusual error patterns that might indicate security issues.
+- **AI Action:** Check for Sentry setup and usage in error handling (`try...catch`).
