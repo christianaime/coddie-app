@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://github.com/coddie-app/coddie-command/assets/coddie-logo.svg" alt="Coddie CLI Demo" width="800"/>
+  <img src="/assets/coddie-logo.svg" alt="Coddie CLI Demo" width="800"/>
 
   # 🚀 Coddie CLI
 
